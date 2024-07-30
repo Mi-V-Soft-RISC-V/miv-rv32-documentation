@@ -37,7 +37,10 @@
   - [tse_stat_t](#tsestatt)
   - [tse_transmit_callback_t](#tsetransmitcallbackt)
   - [tse_receive_callback_t](#tsereceivecallbackt)
+  - [tse_tx_ecc_ded_callback_t](#tsetxeccdedcallbackt)
+  - [tse_rx_ecc_ded_callback_t](#tserxeccdedcallbackt)
   - [tse_wol_callback_t](#tsewolcallbackt)
+  - [tse_stats_callback_t](#tsestatscallbackt)
   - [tse_desc_t](#tsedesct)
   - [tse_cfg_t](#tsecfgt)
   - [tse_instance_t](#tseinstancet)
@@ -104,7 +107,10 @@
   - [TSE_init](#tseinit)
   - [TSE_set_tx_callback](#tsesettxcallback)
   - [TSE_set_rx_callback](#tsesetrxcallback)
+  - [TSE_set_tx_ecc_ded_callback](#tsesettxeccdedcallback)
+  - [TSE_set_rx_ecc_ded_callback](#tsesetrxeccdedcallback)
   - [TSE_set_wol_callback](#tsesetwolcallback)
+  - [TSE_set_stats_callback](#tsesetstatscallback)
   - [TSE_send_pkt](#tsesendpkt)
   - [TSE_receive_pkt](#tsereceivepkt)
   - [TSE_get_link_status](#tsegetlinkstatus)
@@ -113,6 +119,8 @@
   - [TSE_read_phy_reg](#tsereadphyreg)
   - [TSE_write_phy_reg](#tsewritephyreg)
   - [TSE_isr](#tseisr)
+  - [TSE_tx_isr](#tsetxisr)
+  - [TSE_rx_isr](#tserxisr)
   - [TSE_set_address_filter](#tsesetaddressfilter)
 
 <div id="TitlePage" data-type="text">
@@ -146,8 +154,8 @@ interface, the size of transmit and receive rings, and the MDIO address of the
 TBI/1000BaseX module within CoreTSE.
 
 The PHY interface type is selected using the Firmware Catalogue configuration
-dialogue window. This driver supports MII, GMII and TBI interfaces. See the "PHY
-Interface Types" sub-section for an explanation of the PHY interface.
+dialogue window. This driver supports MII, GMII, and TBI interfaces. See the
+"PHY Interface Types" sub-section for an explanation of the PHY interface.
 
 The size of the transmit and receive rings defines the maximum number of
 transmit and receive packets that can be queued.
@@ -291,30 +299,30 @@ The setting of the broadcast, hash-unicast/multicast configuration in Frame Pass
 Control register is inferred from the values of the MAC addresses passed to the
 driver in the allowed MAC addresses list.
 
-  - If all MAC addresses included in the allowed MAC addresses list are unicast 
-then hash-unicast filtering is selected. This results in more unwanted frames 
+  - If all MAC addresses included in the allowed MAC addresses list are unicast,
+ then hash-unicast filtering is selected. This results in more unwanted frames 
 being rejected.
   - If all MAC addresses included in the allowed MAC addresses list are 
-multicast then hash-multicast filtering is selected.
+multicast, then hash-multicast filtering is selected.
   - If the allowed MAC addresses list contains a mix of unicast and multicast 
 MAC addresses, then hash-unicast and hash-multicast filtering is selected.
   - Broadcast filtering is selected if the broadcast MAC address 
 `(FF:FF:FF:FF:FF:FF)` is included in the allowed MAC addresses list.
 
 If the allowed MAC addresses list contains a mix of broadcast, unicast, and
-multicast MAC addresses then broadcast, hash-unicast and hash-multicast
+multicast MAC addresses then broadcast, hash-unicast, and hash-multicast
 filtering is selected. The local base station MAC address must be included in
 the allowed MAC addresses list if the application wants to receive frames
 addressed to it after calling the `TSE_set_address_filter()` function.
 
 The filtering is not perfect since the filtering hardware uses a hash table.
-Therefore, some frames with addresses are not included in the allowed MAC
-addresses list are still passed because the hash value for their MAC address is
-identical to the hash value of an allowed MAC address. The hash
-unicast/multicast setting allows further reduction of the number of unwanted
-frames passed by both checking the MAC address against the hash table and
-checking the received MAC address unicast/multicast bit against the hash
-unicast/multicast setting of the filtering IP.
+Therefore, some frames with addresses not included in the allowed MAC addresses
+list are still passed because the hash value for their MAC address is identical
+to the hash value of an allowed MAC address. The hash unicast/multicast setting
+allows further reduction of the number of unwanted frames passed by both
+checking the MAC address against the hash table and checking the received MAC
+address unicast/multicast bit against the hash unicast/multicast setting of the
+filtering IP.
 
 The following function is used as part of the frame filtering
 
@@ -322,9 +330,9 @@ The following function is used as part of the frame filtering
 
 ## Frame Drop Criterion
 Apart from the address-based frame filtering, the CoreTSE provides the facility
-to drop frames based on certain criteria. The criteria for the frame drop logic
-can be configured using the framedrop_mask element of the tse_cfg_t structure.
-The value of this element is set to TSE_DEFVAL_FRAMEDROP_MASK by the
+to drop the frames based on certain criteria. The criteria for the frame drop
+logic can be configured using the framedrop_mask element of the tse_cfg_t
+structure. The value of this element is set to TSE_DEFVAL_FRAMEDROP_MASK by the
 `TSE_cfg_struct_def_init()` function. This configuration value enables CoreTSE
 to drop frames which have CRC errors, code errors, and frames with unsupported
 op-codes. You may change the configuration before passing it to the `TSE_init()`
@@ -522,6 +530,56 @@ listener function, which can be provided as a parameter to
 
 
  --------------------------- 
+<a name="tsetxeccdedcallbackt"></a>
+## tse_tx_ecc_ded_callback_t
+<a name="prototype"></a>
+### Prototype 
+
+<div id="Types$tse_tx_ecc_ded_callback_t$prototype" data-type="code">
+
+`typedef void(* tse_tx_ecc_ded_callback_t) (void)`
+
+</div>
+
+<a name="description"></a>
+### Description 
+
+<div id="Types$tse_tx_ecc_ded_callback_t$description" data-type="text">
+
+The application must use this function prototype to define the transmit ECC
+double bit error detection call-back function, which can be provided as a
+parameter to `TSE_set_tx_ecc_ded_callback()`.
+
+
+</div>
+
+
+ --------------------------- 
+<a name="tserxeccdedcallbackt"></a>
+## tse_rx_ecc_ded_callback_t
+<a name="prototype"></a>
+### Prototype 
+
+<div id="Types$tse_rx_ecc_ded_callback_t$prototype" data-type="code">
+
+`typedef void(* tse_rx_ecc_ded_callback_t) (void)`
+
+</div>
+
+<a name="description"></a>
+### Description 
+
+<div id="Types$tse_rx_ecc_ded_callback_t$description" data-type="text">
+
+The application must use this function prototype to define the receive ECC
+double bit error detection call-back function, which can be provided as a
+parameter to `TSE_set_rx_ecc_ded_callback()`.
+
+
+</div>
+
+
+ --------------------------- 
 <a name="tsewolcallbackt"></a>
 ## tse_wol_callback_t
 <a name="prototype"></a>
@@ -540,6 +598,31 @@ listener function, which can be provided as a parameter to
 
 The application must use this function prototype to define the WoL event handler
 function, which can be provided as a parameter to `TSE_set_wol_callback()`.
+
+
+</div>
+
+
+ --------------------------- 
+<a name="tsestatscallbackt"></a>
+## tse_stats_callback_t
+<a name="prototype"></a>
+### Prototype 
+
+<div id="Types$tse_stats_callback_t$prototype" data-type="code">
+
+`typedef void(* tse_stats_callback_t) (void)`
+
+</div>
+
+<a name="description"></a>
+### Description 
+
+<div id="Types$tse_stats_callback_t$description" data-type="text">
+
+The application must use this function prototype to define the statistics
+counter carry event handler function, which can be provided as a parameter to
+`TSE_set_stats_callback()`.
 
 
 </div>
@@ -899,9 +982,9 @@ TSE_NO_BACKOFF_DISABLE.
 
 The backpres_nobackoff parameter specifies whether to enable or disable back-off
 in back pressure mode. When enabled, the transmitter immediately re-transmits
-following a collision during an Ethernet back pressure operation. When disabled,
-the transmitter follows the binary exponential backoff rule. The allowed values
-for the backpres_nobackoff configuration parameter are:
+following a collision during back a pressure operation. When disabled, the
+transmitter follows the binary exponential backoff rule. The allowed values for
+the backpres_nobackoff configuration parameter are:
 
   - TSE_BACKPRESS_NO_BACKOFF_ENABLE
   - TSE_BACKPRESS_NO_BACKOFF_DISABLE
@@ -1105,6 +1188,9 @@ is not required.
         int16_t first_rx_desc_index; 
         uint8_t phy_addr; <--PHY address for this instance of CoreTSE 
         tse_wol_callback_t wol_callback; 
+        tse_stats_callback_t stats_callback; 
+        tse_tx_ecc_ded_callback_t tx_ecc_ded_callback; 
+        tse_rx_ecc_ded_callback_t rx_ecc_ded_callback; 
     } tse_instance_t ;
   ``` 
 
@@ -1153,7 +1239,10 @@ The following definitions are used with functions `TSE_send_pkt()` and
 `TSE_receive_pkt()` to report success or failure in assigning the packet memory
 buffer to a transmit/receive descriptor.
 
-| Constant | Description | | --------
+| Constant  | Description   | 
+| -----|-----|
+| TSE_SUCCESS  | The memory buffer was successfully assigned to a transmit/receive descriptor.   | 
+| TSE_FAILED  | The memory buffer was not successfully assigned to a transmit/receive descriptor.   | 
 
 </div>
 
@@ -1524,7 +1613,15 @@ link status.
 
 <a name="tsefcpassbroadcastmask"></a>
 ## Frame Filter configuration options
-| Constant | Description | | -----------------------------
+| Constant  | Description   | 
+| -----|-----|
+| TSE_FC_PASS_BROADCAST_MASK  | Pass all broadcast frames.   | 
+| TSE_FC_PASS_MULTICAST_MASK  | Pass all multicast frames.   | 
+| TSE_FC_PASS_UNICAST_MASK  | Pass the frame if its Unicast-DA matches the configured destination address.   | 
+| TSE_FC_PROMISCOUS_MODE_MASK  | Promiscuous mode, allow all the frames to pass.   | 
+| TSE_FC_PASS_UNICAST_HASHT_MASK  | Pass the frame if the hash table entry matches for Unicast destination addresses.   | 
+| TSE_FC_PASS_MULTICAST_HASHT_MASK  | Pass the frame if the hash table entry matches for Multicast destination address.   | 
+| TSE_FC_DEFAULT_MASK  | Default frame filtering mask.   | 
 
 </div>
 
@@ -1895,9 +1992,9 @@ This function does not return a value.
 
 ##### Example
 <div id="Functions$TSE_cfg_struct_def_init$description$example$Example1" data-type="text" data-name="Example">
-The example below demonstrates the use of the `TSE_cfg_struct_def_init()`
-function. It retrieves the default MAC configuration and modifies it to connect
-through an MII Ethernet PHY at MII management interface address 0x01.
+The following example shows the use of the `TSE_cfg_struct_def_init()` function.
+It retrieves the default MAC configuration and modifies it to connect through an
+MII Ethernet PHY at MII management interface address 0x01.
 
 This example also demonstrates how to assign the device's MAC address and force
 a 100Mbps full duplex link.
@@ -2229,8 +2326,8 @@ packet is received by CoreTSE.
 
 ##### Example
 <div id="Functions$TSE_set_rx_callback$description$example$Example1" data-type="text" data-name="Example">
-The example below demonstrates the use of the `TSE_set_rx_callback()` function.
-The `init()` function calls the `TSE_set_rx_callback()` function to register the
+The following example shows the use of the `TSE_set_rx_callback()` function. The
+`init()` function calls the `TSE_set_rx_callback()` function to register the
 `rx_callback()` receive callback function with the CoreTSE driver. The
 `TSE_receive_pkt()` function is then called to assign the rx_buffer to an
 CoreTSE_AHB descriptor for packet reception. Once a packet is received into the
@@ -2272,6 +2369,189 @@ rx_buffer for packet reception.
 
 
  -------------------------------- 
+<a name="tsesettxeccdedcallback"></a>
+## TSE_set_tx_ecc_ded_callback
+<a name="prototype"></a>
+### Prototype 
+
+<div id="Functions$TSE_set_tx_ecc_ded_callback$prototype" data-type="code">
+
+    void
+    TSE_set_tx_ecc_ded_callback
+    (
+        tse_instance_t * this_tse,
+        tse_tx_ecc_ded_callback_t tx_ecc_ded_callback
+    );
+
+
+</div>
+
+<a name="description"></a>
+### Description
+
+<div id="Functions$TSE_set_tx_ecc_ded_callback$description" data-type="text">
+
+`TSE_set_tx_ecc_ded_callback()` registers the function that is called by the
+CoreTSE driver whenever the transmit ECC double bit error interrupt is
+triggered.
+
+</div>
+
+
+ --------------------------- 
+
+<a name="parameters"></a>
+### Parameters
+#### this_tse
+<div id="Functions$TSE_set_tx_ecc_ded_callback$description$parameters$this_tse" data-type="text" data-name="this_tse">
+
+The this_tse parameter is a pointer to the tse_instance_t structure holding all
+data regarding the CoreTSE instance controlled through this function call.
+
+
+</div>
+
+#### tx_ecc_ded_callback
+<div id="Functions$TSE_set_tx_ecc_ded_callback$description$parameters$tx_ecc_ded_callback" data-type="text" data-name="tx_ecc_ded_callback">
+
+The tx_ecc_ded_callback parameter is a pointer to the call-back function that is
+called when a double bit ECC error is detected in the transmit buffer.
+
+
+</div>
+
+<a name="return"></a>
+### Return
+<div id="" data-type="text">
+
+
+</div>
+
+##### Example
+<div id="Functions$TSE_set_tx_ecc_ded_callback$description$example$Example1" data-type="text" data-name="Example">
+The following example shows the use of the `TSE_set_tx_ecc_ded_callback()`
+function. The `init()` function calls the `TSE_set_tx_ecc_ded_callback()`
+function to register the `tx_ecc_ded_callback()` callback function with the
+CoreTSE driver. The tx_ecc_ded_callback function is called by the CoreTSE driver
+once the ECC double bit error interrupt is triggered. `tx_ecc_ded_callback()`
+can implement the application-specific action when the transmit ECC double bit
+error interrupt is triggered.
+
+
+</div>
+
+<div id="Functions$TSE_set_tx_ecc_ded_callback$description$example$Example1" data-type="code" data-name="Example">
+
+
+```
+    tse_instance_t g_tse;
+
+    void
+    tx_ecc_ded_callback()
+    {
+        //Process transmit ECC double bit error interrupt here.
+    }
+    void init(void)
+    {
+        TSE_set_tx_ecc_ded_callback(&g_tse, tx_ecc_ded_callback);
+    }
+```
+
+</div>
+
+
+ -------------------------------- 
+<a name="tsesetrxeccdedcallback"></a>
+## TSE_set_rx_ecc_ded_callback
+<a name="prototype"></a>
+### Prototype 
+
+<div id="Functions$TSE_set_rx_ecc_ded_callback$prototype" data-type="code">
+
+    void
+    TSE_set_rx_ecc_ded_callback
+    (
+        tse_instance_t * this_tse,
+        tse_rx_ecc_ded_callback_t rx_ecc_ded_callback
+    );
+
+
+</div>
+
+<a name="description"></a>
+### Description
+
+<div id="Functions$TSE_set_rx_ecc_ded_callback$description" data-type="text">
+
+`TSE_set_rx_ecc_ded_callback()` registers the function that is called by the
+CoreTSE driver whenever the recieve ECC double bit error interrupt is triggered.
+
+</div>
+
+
+ --------------------------- 
+
+<a name="parameters"></a>
+### Parameters
+#### this_tse
+<div id="Functions$TSE_set_rx_ecc_ded_callback$description$parameters$this_tse" data-type="text" data-name="this_tse">
+
+The this_tse parameter is a pointer to the tse_instance_t structure holding all
+data regarding the CoreTSE instance controlled through this function call.
+
+
+</div>
+
+#### rx_ecc_ded_callback
+<div id="Functions$TSE_set_rx_ecc_ded_callback$description$parameters$rx_ecc_ded_callback" data-type="text" data-name="rx_ecc_ded_callback">
+
+The rx_ecc_ded_callback parameter is a pointer to the call-back function that is
+called when a double bit ECC error is detected in the recieve buffer.
+
+
+</div>
+
+<a name="return"></a>
+### Return
+<div id="" data-type="text">
+
+
+</div>
+
+##### Example
+<div id="Functions$TSE_set_rx_ecc_ded_callback$description$example$Example1" data-type="text" data-name="Example">
+The following example shows the use of the `TSE_set_rx_ecc_ded_callback()`
+function. The `init()` function calls the `TSE_set_rx_ecc_ded_callback()`
+function to register the `rx_ecc_ded_callback()` callback function with the
+CoreTSE driver. The rx_ecc_ded_callback function is called by the CoreTSE driver
+once the ECC double bit error interrupt is triggered. `rx_ecc_ded_callback()`
+can implement the application-specific action when the recieve ECC double bit
+error interrupt is triggered.
+
+
+</div>
+
+<div id="Functions$TSE_set_rx_ecc_ded_callback$description$example$Example1" data-type="code" data-name="Example">
+
+
+```
+    tse_instance_t g_tse;
+
+    void
+    rx_ecc_ded_callback()
+    {
+        //Process recieve ECC double bit error interrupt here.
+    }
+    void init(void)
+    {
+        TSE_set_rx_ecc_ded_callback(&g_tse, rx_ecc_ded_callback);
+    }
+```
+
+</div>
+
+
+ -------------------------------- 
 <a name="tsesetwolcallback"></a>
 ## TSE_set_wol_callback
 <a name="prototype"></a>
@@ -2295,7 +2575,7 @@ rx_buffer for packet reception.
 <div id="Functions$TSE_set_wol_callback$description" data-type="text">
 
 The `TSE_set_wol_callback()` function registers the function that is called by
-the CoreTSE driver when Wake on LAN (WoL) is enabled and a WoL event is
+the CoreTSE driver when Wake on LAN (WoL) feature is enabled and WoL event is
 detected. The WoL event happens when either a Unicast match frame or AMD magic
 packet frame is detected by CoreTSE. The wol_enable parameter in tse_cfg_t
 structure decides which type of packets can cause the WoL event.
@@ -2336,7 +2616,7 @@ This function does not return a value.
 
 ##### Example
 <div id="Functions$TSE_set_wol_callback$description$example$Example1" data-type="text" data-name="Example">
-The example below demonstrates the use of the `TSE_set_wol_callback()` function.
+The following example shows the use of the `TSE_set_wol_callback()` function.
 The `init()` function calls the `TSE_set_wol_callback()` function to register
 the wol_callback() receive callback function with the CoreTSE driver. The
 wol_callback function is called by the CoreTSE driver once a WoL event is
@@ -2362,6 +2642,103 @@ detecting the WoL event.
     void init(void)
     {
         TSE_set_wol_callback(&g_tse, wol_callback);
+    }
+```
+
+</div>
+
+
+ -------------------------------- 
+<a name="tsesetstatscallback"></a>
+## TSE_set_stats_callback
+<a name="prototype"></a>
+### Prototype 
+
+<div id="Functions$TSE_set_stats_callback$prototype" data-type="code">
+
+    void
+    TSE_set_stats_callback
+    (
+        tse_instance_t * this_tse,
+        tse_stats_callback_t stats_callback
+    );
+
+
+</div>
+
+<a name="description"></a>
+### Description
+
+<div id="Functions$TSE_set_stats_callback$description" data-type="text">
+
+The `TSE_set_stats_callback()` function registers the function that is called by
+the CoreTSE driver whenever the statistics counter carry interrupt is generated.
+The interrupt is triggered when a carry is produced in any of the implemented
+statistics counters.
+
+</div>
+
+
+ --------------------------- 
+
+<a name="parameters"></a>
+### Parameters
+#### this_tse
+<div id="Functions$TSE_set_stats_callback$description$parameters$this_tse" data-type="text" data-name="this_tse">
+
+The this_tse parameter is a pointer to the tse_instance_t structure holding all
+data regarding the CoreTSE instance controlled through this function call.
+
+
+</div>
+
+#### stats_callback
+<div id="Functions$TSE_set_stats_callback$description$parameters$stats_callback" data-type="text" data-name="stats_callback">
+
+The stats_callback parameter is a pointer to the function that is called when a
+statistics counter carry interrupt is generated.
+
+
+</div>
+
+<a name="return"></a>
+### Return
+<div id="Functions$TSE_set_stats_callback$description$return" data-type="text">
+
+This function does not return a value.
+
+
+</div>
+
+##### Example
+<div id="Functions$TSE_set_stats_callback$description$example$Example1" data-type="text" data-name="Example">
+The following example shows the use of the `TSE_set_stats_callback()` function.
+The `init()` function calls the `TSE_set_stats_callback()` function to register
+the stats_callback() callback function with the CoreTSE driver. The
+stats_callback function is called by the CoreTSE driver once a statistics
+counter carry interrup is generated. `stats_callback()` can implement the
+application-specific action when a statistics counter carry interrup is
+generated.
+
+
+</div>
+
+<div id="Functions$TSE_set_stats_callback$description$example$Example1" data-type="code" data-name="Example">
+
+
+```
+    tse_instance_t g_tse;
+
+    void stats_callback
+    (
+        void * p_user_data
+    )
+    {
+        //Process statistics counter carry interrupt here.
+    }
+    void init(void)
+    {
+        TSE_set_stats_callback(&g_tse, stats_callback);
     }
 ```
 
@@ -2594,7 +2971,7 @@ descriptor. It returns 0 otherwise.
 
 ##### Example
 <div id="Functions$TSE_receive_pkt$description$example$Example1" data-type="text" data-name="Example">
-The example below demonstrates the use of `TSE_receive_pkt()` to handle packet
+The following example shows the use of `TSE_receive_pkt()` to handle packet
 reception using two receive buffers. The `init()` function calls
 `TSE_set_rx_callback()` to register the `rx_callback()` receive callback
 function with the CoreTSE driver. `TSE_receive_pkt()` is then called twice to
@@ -3120,12 +3497,12 @@ This function does not return a value.
 
 <div id="Functions$TSE_isr$description" data-type="text">
 
-`TSE_isr()` is the top-level interrupt handler function for the CoreTSE driver.
-You must call `TSE_isr()` from the system-level (CoreInterrupt and NVIC level)
-interrupt handler assigned to the interrupt triggered by the CoreTSE INTR
-signal. Your system-level interrupt handler must also clear the system-level
-interrupt triggered by the CoreTSE INTR signal before returning, to prevent a
-re-assertion of the same interrupt.
+`TSE_isr()` is the top-level common interrupt handler function for the CoreTSE
+driver. You must call `TSE_isr()` from the system-level interrupt handler
+assigned to the interrupt triggered by the CoreTSE TSM_INTR signal. Your system-
+level interrupt handler must also clear the system-level interrupt triggered by
+the CoreTSE TSM_INTR signal before returning, to prevent a re-assertion of the
+same interrupt.
 
 </div>
 
@@ -3163,12 +3540,157 @@ This function does not return a value.
 ```
     tse_instance_t g_tse;
 
-    void FabricIrq0_IRQHandler
-    (
-        void
-    )
+    void External_IRQHandler(void)
     {
         TSE_isr(&g_tse);
+    }
+```
+
+</div>
+
+
+ -------------------------------- 
+<a name="tsetxisr"></a>
+## TSE_tx_isr
+<a name="prototype"></a>
+### Prototype 
+
+<div id="Functions$TSE_tx_isr$prototype" data-type="code">
+
+    void
+    TSE_tx_isr
+    (
+        tse_instance_t * this_tse
+    );
+
+
+</div>
+
+<a name="description"></a>
+### Description
+
+<div id="Functions$TSE_tx_isr$description" data-type="text">
+
+`TSE_tx_isr()` is the top-level transmit interrupt handler function for the
+CoreTSE driver. You must call `TSE_tx_isr()` from the system-level interrupt
+handler assigned to the interrupt triggered by the CoreTSE TSM_TX_INTR signal.
+Your system-level interrupt handler must also clear the system-level interrupt
+triggered by the CoreTSE TSM_TX_INTR signal before returning, to prevent a re-
+assertion of the same interrupt.
+
+</div>
+
+
+ --------------------------- 
+
+<a name="parameters"></a>
+### Parameters
+#### this_tse
+<div id="Functions$TSE_tx_isr$description$parameters$this_tse" data-type="text" data-name="this_tse">
+
+The this_tse parameter is a pointer to the tse_instance_t structure holding all
+data regarding the CoreTSE instance controlled through this function call.
+
+
+</div>
+
+<a name="return"></a>
+### Return
+<div id="Functions$TSE_tx_isr$description$return" data-type="text">
+
+This function does not return a value.
+
+
+</div>
+
+##### Example
+<div id="Functions$TSE_tx_isr$description$example$Example1" data-type="text" data-name="Example">
+
+</div>
+
+<div id="Functions$TSE_tx_isr$description$example$Example1" data-type="code" data-name="Example">
+
+
+```
+    tse_instance_t g_tse;
+
+    void External_IRQHandler(void)
+    {
+        TSE_tx_isr(&g_tse);
+    }
+```
+
+</div>
+
+
+ -------------------------------- 
+<a name="tserxisr"></a>
+## TSE_rx_isr
+<a name="prototype"></a>
+### Prototype 
+
+<div id="Functions$TSE_rx_isr$prototype" data-type="code">
+
+    void
+    TSE_rx_isr
+    (
+        tse_instance_t * this_tse
+    );
+
+
+</div>
+
+<a name="description"></a>
+### Description
+
+<div id="Functions$TSE_rx_isr$description" data-type="text">
+
+`TSE_rx_isr()` is the top-level recieve interrupt handler function for the
+CoreTSE driver. You must call `TSE_rx_isr()` from the system-level interrupt
+handler assigned to the interrupt triggered by the CoreTSE TSM_RX_INTR signal.
+Your system-level interrupt handler must also clear the system-level interrupt
+triggered by the CoreTSE TSM_RX_INTR signal before returning, to prevent a re-
+assertion of the same interrupt.
+
+</div>
+
+
+ --------------------------- 
+
+<a name="parameters"></a>
+### Parameters
+#### this_tse
+<div id="Functions$TSE_rx_isr$description$parameters$this_tse" data-type="text" data-name="this_tse">
+
+The this_tse parameter is a pointer to the tse_instance_t structure holding all
+data regarding the CoreTSE instance controlled through this function call.
+
+
+</div>
+
+<a name="return"></a>
+### Return
+<div id="Functions$TSE_rx_isr$description$return" data-type="text">
+
+This function does not return a value.
+
+
+</div>
+
+##### Example
+<div id="Functions$TSE_rx_isr$description$example$Example1" data-type="text" data-name="Example">
+
+</div>
+
+<div id="Functions$TSE_rx_isr$description$example$Example1" data-type="code" data-name="Example">
+
+
+```
+    tse_instance_t g_tse;
+
+    void External_IRQHandler(void)
+    {
+        TSE_rx_isr(&g_tse);
     }
 ```
 
@@ -3213,7 +3735,7 @@ included in the allowed MAC addresses list passed as a parameter. It also
 enables passing frames addressed to the local MAC address (perfect unicast
 match) if the local MAC address is included in the allowed MAC addresses list.
 
-Note: The address filtering choice can also be selected using the
+Note: The address filtering choice can also be selected using
 `TSE_cfg_struct_def_init()` function. The configuration value returned by this
 function can be modified and then passed on to the `TSE_init()` function. If the
 `TSE_set_address_filter()` function is used, the original filter setting chosen
