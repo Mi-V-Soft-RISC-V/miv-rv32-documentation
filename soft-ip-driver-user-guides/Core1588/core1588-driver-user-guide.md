@@ -31,22 +31,20 @@
   - [Latch Identifiers](#latch-identifiers)
   - [Trigger Identifiers](#trigger-identifiers)
   - [Core1588 Configuration](#core1588-configuration)
+  - [Core1588 Control Parameters](#core1588-control-parameters)
   - [RTC Increment Macros](#rtc-increment-macros)
 
 - [Functions](#functions)
   - [core1588_cfg_struct_def_init](#core1588cfgstructdefinit)
   - [core1588_init](#core1588init)
   - [core1588_configure](#core1588configure)
-  - [core1588_ptp_enable](#core1588ptpenable)
-  - [core1588_ptp_disable](#core1588ptpdisable)
-  - [core1588_one_step_sync_enable](#core1588onestepsyncenable)
-  - [core1588_one_step_sync_disable](#core1588onestepsyncdisable)
+  - [core1588_ptp_control](#core1588ptpcontrol)
+  - [core1588_one_step_sync_control](#core1588onestepsynccontrol)
   - [core1588_get_enabled_irq](#core1588getenabledirq)
-  - [core1588_enable_irq](#core1588enableirq)
-  - [core1588_disable_irq](#core1588disableirq)
+  - [core1588_irq_control](#core1588irqcontrol)
   - [core1588_get_irq_src](#core1588getirqsrc)
   - [core1588_clear_irq_src](#core1588clearirqsrc)
-  - [c1588_isr](#c1588isr)
+  - [core1588_isr](#core1588isr)
   - [core1588_rtc_set_time](#core1588rtcsettime)
   - [core1588_rtc_get_time](#core1588rtcgettime)
   - [core1588_rtc_set_increment](#core1588rtcsetincrement)
@@ -68,15 +66,13 @@
   - [core1588_ptp_tx_get_from_buffer](#core1588ptptxgetfrombuffer)
   - [core1588_ptp_set_tx_unicast_addr](#core1588ptpsettxunicastaddr)
   - [core1588_latch_check_enabled](#core1588latchcheckenabled)
-  - [core1588_latch_enable](#core1588latchenable)
-  - [core1588_latch_disable](#core1588latchdisable)
+  - [core1588_latch_control](#core1588latchcontrol)
   - [core1588_latch_get_timestamp](#core1588latchgettimestamp)
   - [core1588_latch_default_handler](#core1588latchdefaulthandler)
   - [core1588_latch_add_to_buffer](#core1588latchaddtobuffer)
   - [core1588_latch_get_from_buffer](#core1588latchgetfrombuffer)
   - [core1588_trigger_check_enabled](#core1588triggercheckenabled)
-  - [core1588_trigger_enable](#core1588triggerenable)
-  - [core1588_trigger_disable](#core1588triggerdisable)
+  - [core1588_trigger_control](#core1588triggercontrol)
   - [core1588_trigger_set_timestamp](#core1588triggersettimestamp)
   - [core1588_trigger_get_timestamp](#core1588triggergettimestamp)
   - [core1588_trigger_default_handler](#core1588triggerdefaulthandler)
@@ -187,18 +183,18 @@ message types of interest. No function calls are necessary to take a snapshot of
 the Rx/Tx timestamp, only to read the timestamp from a buffer once it has
 already been saved.
 
-c1588_isr() handles all interrupts related to the Core1588. This interrupt
+core1588_isr() handles all interrupts related to the Core1588. This interrupt
 handler should be called by the appropriate interrupt handler provided by the
 processor HAL layer. e.g. (Interrupt handlers provided by MIV_RV32 HAL) which
 will vary depending on how the Core1588 interrupts are hooked to the processor
 in your design. The interrupt types handled by the interrupt handler will depend
 on the interrupts enabled by the user. Depending on the interrupt that has been
-detected, c1588_isr() may call a different interrupt handler. There should be no
-need to call these individual interrupt handlers as a user, this API should
+detected, core1588_isr() may call a different interrupt handler. There should be
+no need to call these individual interrupt handlers as a user, this API should
 handle it instead. For example, core1588_ptp_rx_default_handler() does not need
-to be called in the application code to handle a received message. c1588_isr()
-should be triggered instead, and will in turn call the Rx message handler
-itself.
+to be called in the application code to handle a received message.
+core1588_isr() should be triggered instead, and will in turn call the Rx message
+handler itself.
 
 If a user wishes to include their own interrupt handling APIs, use the
 core1588_interrupt.c file. This file contains APIs for Tx and Rx messages, as
@@ -661,6 +657,24 @@ unicast address filtering in the Core1588.
 
 </div>
 
+<div id="Constants$C1588_ENABLE$description" data-type="text">
+
+<a name="c1588enable"></a>
+## Core1588 Control Parameters
+The following constants specify the parameters used as inputs for the control
+APIs available in the Core1588 driver. These APIs include
+core1588_ptp_control(), core1588_one_step_sync_control(),
+core1588_irq_control(), core1588_latch_control() and core1588_trigger_control().
+C1588_ENABLE is used to enable options within an API. C1588_DISABLE is used to
+disable options within an API.
+
+| Constant    | Description     | 
+| -----|-----|
+| C1588_ENABLE    | Core1588 Control Enable     | 
+| C1588_DISABLE    | Core1588 Control Disable    | 
+
+</div>
+
 <div id="Constants$NS_IN_A_SEC$description" data-type="text">
 
 <a name="nsinasec"></a>
@@ -916,17 +930,18 @@ This function does not return a value.
 
 
  -------------------------------- 
-<a name="core1588ptpenable"></a>
-## core1588_ptp_enable
+<a name="core1588ptpcontrol"></a>
+## core1588_ptp_control
 <a name="prototype"></a>
 ### Prototype 
 
-<div id="Functions$core1588_ptp_enable$prototype" data-type="code">
+<div id="Functions$core1588_ptp_control$prototype" data-type="code">
 
     void
-    core1588_ptp_enable
+    core1588_ptp_control
     (
-        c1588_instance_t * this_c1588
+        c1588_instance_t * this_c1588,
+        uint32_t control
     );
 
 
@@ -935,10 +950,12 @@ This function does not return a value.
 <a name="description"></a>
 ### Description
 
-<div id="Functions$core1588_ptp_enable$description" data-type="text">
+<div id="Functions$core1588_ptp_control$description" data-type="text">
 
-core1588_ptp_enable() enables the Core1588 and its PTP timestamping
-functionality. It is an alternative way to enable the initial configuration.
+core1588_ptp_control() controls the Core1588 and its PTP timestamping
+functionality. It is an alternative way to control the initial configuration.
+Passing C1588_ENABLE as a parameter will enable this functionality, while
+C1588_DISABLE will disable this functionality.
 
 </div>
 
@@ -948,7 +965,7 @@ functionality. It is an alternative way to enable the initial configuration.
 <a name="parameters"></a>
 ### Parameters
 #### this_c1588
-<div id="Functions$core1588_ptp_enable$description$parameters$this_c1588" data-type="text" data-name="this_c1588">
+<div id="Functions$core1588_ptp_control$description$parameters$this_c1588" data-type="text" data-name="this_c1588">
 
 The this_c1588 parameter is a pointer to a c1588_instance_t structure that holds
 all the data related to a Core1588 instance.
@@ -956,9 +973,18 @@ all the data related to a Core1588 instance.
 
 </div>
 
+#### control
+<div id="Functions$core1588_ptp_control$description$parameters$control" data-type="text" data-name="control">
+
+uint32_t parameter which selects whether the API enables or disables its
+respective functionality.
+
+
+</div>
+
 <a name="return"></a>
 ### Return
-<div id="Functions$core1588_ptp_enable$description$return" data-type="text">
+<div id="Functions$core1588_ptp_control$description$return" data-type="text">
 
 This function does not return a value.
 
@@ -966,32 +992,33 @@ This function does not return a value.
 </div>
 
 ##### Example
-<div id="Functions$core1588_ptp_enable$description$example$Example1" data-type="text" data-name="Example">
+<div id="Functions$core1588_ptp_control$description$example$Example1" data-type="text" data-name="Example">
 
 </div>
 
-<div id="Functions$core1588_ptp_enable$description$example$Example1" data-type="code" data-name="Example">
+<div id="Functions$core1588_ptp_control$description$example$Example1" data-type="code" data-name="Example">
 
 
 ```
-    core1588_ptp_enable(this_c1588);
+    core1588_ptp_control(this_c1588, C1588_ENABLE);
 ```
 
 </div>
 
 
  -------------------------------- 
-<a name="core1588ptpdisable"></a>
-## core1588_ptp_disable
+<a name="core1588onestepsynccontrol"></a>
+## core1588_one_step_sync_control
 <a name="prototype"></a>
 ### Prototype 
 
-<div id="Functions$core1588_ptp_disable$prototype" data-type="code">
+<div id="Functions$core1588_one_step_sync_control$prototype" data-type="code">
 
     void
-    core1588_ptp_disable
+    core1588_one_step_sync_control
     (
-        c1588_instance_t * this_c1588
+        c1588_instance_t * this_c1588,
+        uint32_t control
     );
 
 
@@ -1000,10 +1027,12 @@ This function does not return a value.
 <a name="description"></a>
 ### Description
 
-<div id="Functions$core1588_ptp_disable$description" data-type="text">
+<div id="Functions$core1588_one_step_sync_control$description" data-type="text">
 
-core1588_ptp_disable() disables the Core1588 and its PTP timestamping
-functionality.
+core1588_one_step_sync_control() controls the Core1588 one-step sync message
+mode. It is an alternative way to control the initial configuration. Passing
+C1588_ENABLE as a parameter will enable this functionality, while C1588_DISABLE
+will disable this functionality.
 
 </div>
 
@@ -1013,7 +1042,7 @@ functionality.
 <a name="parameters"></a>
 ### Parameters
 #### this_c1588
-<div id="Functions$core1588_ptp_disable$description$parameters$this_c1588" data-type="text" data-name="this_c1588">
+<div id="Functions$core1588_one_step_sync_control$description$parameters$this_c1588" data-type="text" data-name="this_c1588">
 
 The this_c1588 parameter is a pointer to a c1588_instance_t structure that holds
 all the data related to a Core1588 instance.
@@ -1021,9 +1050,18 @@ all the data related to a Core1588 instance.
 
 </div>
 
+#### control
+<div id="Functions$core1588_one_step_sync_control$description$parameters$control" data-type="text" data-name="control">
+
+uint32_t parameter which selects whether the API enables or disables its
+respective functionality.
+
+
+</div>
+
 <a name="return"></a>
 ### Return
-<div id="Functions$core1588_ptp_disable$description$return" data-type="text">
+<div id="Functions$core1588_one_step_sync_control$description$return" data-type="text">
 
 This function does not return a value.
 
@@ -1031,117 +1069,16 @@ This function does not return a value.
 </div>
 
 ##### Example
-<div id="Functions$core1588_ptp_disable$description$example$Example1" data-type="text" data-name="Example">
+<div id="Functions$core1588_one_step_sync_control$description$example$Example1" data-type="text" data-name="Example">
 
 </div>
 
-<div id="Functions$core1588_ptp_disable$description$example$Example1" data-type="code" data-name="Example">
+<div id="Functions$core1588_one_step_sync_control$description$example$Example1" data-type="code" data-name="Example">
 
 
 ```
-    core1588_ptp_disable(this_c1588);
+    core1588_one_step_sync_control(this_c1588, C1588_ENABLE);
 ```
-
-</div>
-
-
- -------------------------------- 
-<a name="core1588onestepsyncenable"></a>
-## core1588_one_step_sync_enable
-<a name="prototype"></a>
-### Prototype 
-
-<div id="Functions$core1588_one_step_sync_enable$prototype" data-type="code">
-
-    void
-    core1588_one_step_sync_enable
-    (
-        c1588_instance_t * this_c1588
-    );
-
-
-</div>
-
-<a name="description"></a>
-### Description
-
-<div id="Functions$core1588_one_step_sync_enable$description" data-type="text">
-
-core1588_one_step_sync_enable() sets the Core1588 to one-step sync message mode.
-It is an alternative way to enable the initial configuration.
-
-</div>
-
-
- --------------------------- 
-
-<a name="parameters"></a>
-### Parameters
-#### this_c1588
-<div id="Functions$core1588_one_step_sync_enable$description$parameters$this_c1588" data-type="text" data-name="this_c1588">
-
-The this_c1588 parameter is a pointer to a c1588_instance_t structure that holds
-all the data related to a Core1588 instance.
-
-
-</div>
-
-<a name="return"></a>
-### Return
-<div id="Functions$core1588_one_step_sync_enable$description$return" data-type="text">
-
-This function does not return a value.
-
-
-</div>
-
-
- -------------------------------- 
-<a name="core1588onestepsyncdisable"></a>
-## core1588_one_step_sync_disable
-<a name="prototype"></a>
-### Prototype 
-
-<div id="Functions$core1588_one_step_sync_disable$prototype" data-type="code">
-
-    void
-    core1588_one_step_sync_disable
-    (
-        c1588_instance_t * this_c1588
-    );
-
-
-</div>
-
-<a name="description"></a>
-### Description
-
-<div id="Functions$core1588_one_step_sync_disable$description" data-type="text">
-
-core1588_one_step_sync_disable() disables Core1588 one-step sync message mode.
-
-</div>
-
-
- --------------------------- 
-
-<a name="parameters"></a>
-### Parameters
-#### this_c1588
-<div id="Functions$core1588_one_step_sync_disable$description$parameters$this_c1588" data-type="text" data-name="this_c1588">
-
-The this_c1588 parameter is a pointer to a c1588_instance_t structure that holds
-all the data related to a Core1588 instance.
-
-
-</div>
-
-<a name="return"></a>
-### Return
-<div id="Functions$core1588_one_step_sync_disable$description$return" data-type="text">
-
-This function does not return a value.
-
 
 </div>
 
@@ -1212,18 +1149,19 @@ all the data related to a Core1588 instance.
 
 
  -------------------------------- 
-<a name="core1588enableirq"></a>
-## core1588_enable_irq
+<a name="core1588irqcontrol"></a>
+## core1588_irq_control
 <a name="prototype"></a>
 ### Prototype 
 
-<div id="Functions$core1588_enable_irq$prototype" data-type="code">
+<div id="Functions$core1588_irq_control$prototype" data-type="code">
 
     void
-    core1588_enable_irq
+    core1588_irq_control
     (
         c1588_instance_t * this_c1588,
-        uint32_t irq_mask
+        uint32_t irq_mask,
+        uint32_t control
     );
 
 
@@ -1232,10 +1170,12 @@ all the data related to a Core1588 instance.
 <a name="description"></a>
 ### Description
 
-<div id="Functions$core1588_enable_irq$description" data-type="text">
+<div id="Functions$core1588_irq_control$description" data-type="text">
 
-core1588_enable_irq() enables interrupts. The irq_mask input is a 32-bit mask
-that selects which interrupts to enable.
+core1588_irq_control() controls interrupts. The irq_mask input is a 32-bit mask
+that selects which interrupts to control. Passing C1588_ENABLE as a parameter
+will enable any interrupts included in irq_mask, while passing C1588_DISABLE
+will disable any interrupts included in irq_mask.
 
 </div>
 
@@ -1245,7 +1185,7 @@ that selects which interrupts to enable.
 <a name="parameters"></a>
 ### Parameters
 #### this_c1588
-<div id="Functions$core1588_enable_irq$description$parameters$this_c1588" data-type="text" data-name="this_c1588">
+<div id="Functions$core1588_irq_control$description$parameters$this_c1588" data-type="text" data-name="this_c1588">
 
 The this_c1588 parameter is a pointer to a c1588_instance_t structure that holds
 all the data related to a Core1588 instance.
@@ -1254,9 +1194,9 @@ all the data related to a Core1588 instance.
 </div>
 
 #### irq_mask
-<div id="Functions$core1588_enable_irq$description$parameters$irq_mask" data-type="text" data-name="irq_mask">
+<div id="Functions$core1588_irq_control$description$parameters$irq_mask" data-type="text" data-name="irq_mask">
 
-uint32_t mask of interrupts to enable. The possible interrupts are:
+uint32_t mask of interrupts to control. The possible interrupts are:
 
   - C1588_TTS_IRQ
   - C1588_RTS_IRQ
@@ -1283,9 +1223,27 @@ uint32_t mask of interrupts to enable. The possible interrupts are:
 
 </div>
 
+#### control
+<div id="Functions$core1588_irq_control$description$parameters$control" data-type="text" data-name="control">
+
+uint32_t parameter which selects whether the API enables or disables the IRQs
+provided in irq_mask.
+
+
+</div>
+
+#### control
+<div id="Functions$core1588_irq_control$description$parameters$control" data-type="text" data-name="control">
+
+uint32_t parameter which selects whether the API enables or disables the
+provided interrupts.
+
+
+</div>
+
 <a name="return"></a>
 ### Return
-<div id="Functions$core1588_enable_irq$description$return" data-type="text">
+<div id="Functions$core1588_irq_control$description$return" data-type="text">
 
 This function does not return a value.
 
@@ -1293,113 +1251,16 @@ This function does not return a value.
 </div>
 
 ##### Example
-<div id="Functions$core1588_enable_irq$description$example$Example1" data-type="text" data-name="Example">
+<div id="Functions$core1588_irq_control$description$example$Example1" data-type="text" data-name="Example">
 
 </div>
 
-<div id="Functions$core1588_enable_irq$description$example$Example1" data-type="code" data-name="Example">
+<div id="Functions$core1588_irq_control$description$example$Example1" data-type="code" data-name="Example">
 
 
 ```
     uint32_t irq_mask = C1588_RTS_IRQ | C1588_RXSYNC_IRQ;
-    core1588_enable_irq(this_c1588, irq_mask);
-```
-
-</div>
-
-
- -------------------------------- 
-<a name="core1588disableirq"></a>
-## core1588_disable_irq
-<a name="prototype"></a>
-### Prototype 
-
-<div id="Functions$core1588_disable_irq$prototype" data-type="code">
-
-    void
-    core1588_disable_irq
-    (
-        c1588_instance_t * this_c1588,
-        uint32_t irq_mask
-    );
-
-
-</div>
-
-<a name="description"></a>
-### Description
-
-<div id="Functions$core1588_disable_irq$description" data-type="text">
-
-core1588_disable_irq() disables the interrupts. The irq_mask input is a 32-bit
-mask that selects which interrupts to disable.
-
-</div>
-
-
- --------------------------- 
-
-<a name="parameters"></a>
-### Parameters
-#### this_c1588
-<div id="Functions$core1588_disable_irq$description$parameters$this_c1588" data-type="text" data-name="this_c1588">
-
-The this_c1588 parameter is a pointer to a c1588_instance_t structure that holds
-all the data related to a Core1588 instance.
-
-
-</div>
-
-#### irq_mask
-<div id="Functions$core1588_disable_irq$description$parameters$irq_mask" data-type="text" data-name="irq_mask">
-
-uint32_t mask of interrupts to disable. The possible interrupts are:
-
-  - C1588_TTS_IRQ
-  - C1588_RTS_IRQ
-  - C1588_TT0_IRQ
-  - C1588_TT1_IRQ
-  - C1588_TT2_IRQ
-  - C1588_LT0_IRQ
-  - C1588_LT1_IRQ
-  - C1588_LT2_IRQ
-  - C1588_RTCSEC_IRQ
-  - C1588_TXSYNC_IRQ
-  - C1588_TXDELAYREQ_IRQ
-  - C1588_TXPDELAYREQ_IRQ
-  - C1588_TXPDELAYRESP_IRQ
-  - C1588_RXSYNC_IRQ
-  - C1588_RXDELAYREQ_IRQ
-  - C1588_RXPDELAYREQ_IRQ
-  - C1588_RXPDELAYRESP_IRQ
-  - C1588_TTSID_IRQ
-  - C1588_RTSID_IRQ
-  - C1588_PEERTTSID_IRQ
-  - C1588_PEERRTSID_IRQ
-
-
-</div>
-
-<a name="return"></a>
-### Return
-<div id="Functions$core1588_disable_irq$description$return" data-type="text">
-
-This function does not return a value.
-
-
-</div>
-
-##### Example
-<div id="Functions$core1588_disable_irq$description$example$Example1" data-type="text" data-name="Example">
-
-</div>
-
-<div id="Functions$core1588_disable_irq$description$example$Example1" data-type="code" data-name="Example">
-
-
-```
-    uint32_t irq_mask = C1588_RTS_IRQ | C1588_RXSYNC_IRQ;
-    core1588_disable_irq(this_c1588, irq_mask);
+    core1588_irq_control(this_c1588, irq_mask, C1588_ENABLE);
 ```
 
 </div>
@@ -1545,15 +1406,15 @@ This function does not return a value.
 
 
  -------------------------------- 
-<a name="c1588isr"></a>
-## c1588_isr
+<a name="core1588isr"></a>
+## core1588_isr
 <a name="prototype"></a>
 ### Prototype 
 
-<div id="Functions$c1588_isr$prototype" data-type="code">
+<div id="Functions$core1588_isr$prototype" data-type="code">
 
     void
-    c1588_isr
+    core1588_isr
     (
         c1588_instance_t * this_c1588
     );
@@ -1564,9 +1425,9 @@ This function does not return a value.
 <a name="description"></a>
 ### Description
 
-<div id="Functions$c1588_isr$description" data-type="text">
+<div id="Functions$core1588_isr$description" data-type="text">
 
-c1588_isr() handles Core1588 interrupts. Individual interrupt handlers are
+core1588_isr() handles Core1588 interrupts. Individual interrupt handlers are
 called depending on the type of interrupt that has triggered. Default handlers
 are always called where applicable. User handlers can be called if they are
 enabled in core2588_user_config.h. Once enabled the user handler must be
@@ -1580,7 +1441,7 @@ implemented, otherwise the application will halt upon calling the handler.
 <a name="parameters"></a>
 ### Parameters
 #### this_c1588
-<div id="Functions$c1588_isr$description$parameters$this_c1588" data-type="text" data-name="this_c1588">
+<div id="Functions$core1588_isr$description$parameters$this_c1588" data-type="text" data-name="this_c1588">
 
 The this_c1588 parameter is a pointer to a c1588_instance_t structure that holds
 all the data related to a Core1588 instance.
@@ -1590,7 +1451,7 @@ all the data related to a Core1588 instance.
 
 <a name="return"></a>
 ### Return
-<div id="Functions$c1588_isr$description$return" data-type="text">
+<div id="Functions$core1588_isr$description$return" data-type="text">
 
 This function does not return a value.
 
@@ -2434,7 +2295,7 @@ message type are all recorded, and interrupt flags are cleared. The packet
 information is stored in a c1588_ptp_packet_info_t structure and is placed in
 the c1588_instance_t rx_buf ring buffer. rx_irq_mask should contain a mask of
 all of the Rx related interrupts in the masked interrupt register. This API is
-the default Rx interrupt handler and is called by c1588_isr().
+the default Rx interrupt handler and is called by core1588_isr().
 
 </div>
 
@@ -2913,7 +2774,7 @@ and message type are recorded and interrupt flags are cleared. The packet
 information is stored in a c1588_ptp_packet_info_t structure and is placed in
 the c1588_instance_t ring buffer tx_buf. tx_irq_mask should contain a mask of
 all of the Tx related interrupts in the masked interrupt register. This API is
-the default Tx interrupt handler and is called by c1588_isr().
+the default Tx interrupt handler and is called by core1588_isr().
 
 </div>
 
@@ -3270,18 +3131,19 @@ options are:
 
 
  -------------------------------- 
-<a name="core1588latchenable"></a>
-## core1588_latch_enable
+<a name="core1588latchcontrol"></a>
+## core1588_latch_control
 <a name="prototype"></a>
 ### Prototype 
 
-<div id="Functions$core1588_latch_enable$prototype" data-type="code">
+<div id="Functions$core1588_latch_control$prototype" data-type="code">
 
     void
-    core1588_latch_enable
+    core1588_latch_control
     (
         c1588_instance_t * this_c1588,
-        uint32_t latch_mask
+        uint32_t latch_mask,
+        uint32_t control
     );
 
 
@@ -3290,10 +3152,12 @@ options are:
 <a name="description"></a>
 ### Description
 
-<div id="Functions$core1588_latch_enable$description" data-type="text">
+<div id="Functions$core1588_latch_control$description" data-type="text">
 
-core1588_latch_check_enabled() enables RTC latches and their registers.
-latch_mask is a mask of latch IDs to enable.
+core1588_latch_control() controls RTC latches and their registers. latch_mask is
+a mask of latch IDs to control. Passing C1588_ENABLE as a parameter will enable
+any latches included in latch_mask, while passing C1588_DISABLE will disable any
+latches included in latch_mask.
 
 </div>
 
@@ -3303,7 +3167,7 @@ latch_mask is a mask of latch IDs to enable.
 <a name="parameters"></a>
 ### Parameters
 #### this_c1588
-<div id="Functions$core1588_latch_enable$description$parameters$this_c1588" data-type="text" data-name="this_c1588">
+<div id="Functions$core1588_latch_control$description$parameters$this_c1588" data-type="text" data-name="this_c1588">
 
 The this_c1588 parameter is a pointer to a c1588_instance_t structure that holds
 all the data related to a Core1588 instance.
@@ -3312,90 +3176,9 @@ all the data related to a Core1588 instance.
 </div>
 
 #### latch_mask
-<div id="Functions$core1588_latch_enable$description$parameters$latch_mask" data-type="text" data-name="latch_mask">
+<div id="Functions$core1588_latch_control$description$parameters$latch_mask" data-type="text" data-name="latch_mask">
 
-uint32_t mask of interrupt bits to denote which latch ID to enable. The possible
-options are:
-
-  - C1588_LATCH_0
-  - C1588_LATCH_1
-  - C1588_LATCH_2
-  - C1588_LATCH_MASK_ALL
-
-
-</div>
-
-<a name="return"></a>
-### Return
-<div id="Functions$core1588_latch_enable$description$return" data-type="text">
-
-This function does not return a value.
-
-
-</div>
-
-##### Example
-<div id="Functions$core1588_latch_enable$description$example$Example1" data-type="text" data-name="Example">
-
-</div>
-
-<div id="Functions$core1588_latch_enable$description$example$Example1" data-type="code" data-name="Example">
-
-
-```
-    uint32_t latch_mask = C1588_LATCH_0 | C1588_LATCH_1;
-    core1588_latch_enable(this_c1588, latch_mask);
-```
-
-</div>
-
-
- -------------------------------- 
-<a name="core1588latchdisable"></a>
-## core1588_latch_disable
-<a name="prototype"></a>
-### Prototype 
-
-<div id="Functions$core1588_latch_disable$prototype" data-type="code">
-
-    void
-    core1588_latch_disable
-    (
-        c1588_instance_t * this_c1588,
-        uint32_t latch_mask
-    );
-
-
-</div>
-
-<a name="description"></a>
-### Description
-
-<div id="Functions$core1588_latch_disable$description" data-type="text">
-
-core1588_latch_check_disabled() disables RTC latches and their registers.
-latch_mask is a mask of latch IDs to disable.
-
-</div>
-
-
- --------------------------- 
-
-<a name="parameters"></a>
-### Parameters
-#### this_c1588
-<div id="Functions$core1588_latch_disable$description$parameters$this_c1588" data-type="text" data-name="this_c1588">
-
-The this_c1588 parameter is a pointer to a c1588_instance_t structure that holds
-all the data related to a Core1588 instance.
-
-
-</div>
-
-#### latch_mask
-<div id="Functions$core1588_latch_disable$description$parameters$latch_mask" data-type="text" data-name="latch_mask">
-
-uint32_t mask of interrupt bits to denote which latch ID to disable. The
+uint32_t mask of interrupt bits to denote which latch ID to control. The
 possible options are:
 
   - C1588_LATCH_0
@@ -3406,9 +3189,18 @@ possible options are:
 
 </div>
 
+#### control
+<div id="Functions$core1588_latch_control$description$parameters$control" data-type="text" data-name="control">
+
+uint32_t parameter which selects whether the API enables or disables its
+respective functionality.
+
+
+</div>
+
 <a name="return"></a>
 ### Return
-<div id="Functions$core1588_latch_disable$description$return" data-type="text">
+<div id="Functions$core1588_latch_control$description$return" data-type="text">
 
 This function does not return a value.
 
@@ -3416,16 +3208,16 @@ This function does not return a value.
 </div>
 
 ##### Example
-<div id="Functions$core1588_latch_disable$description$example$Example1" data-type="text" data-name="Example">
+<div id="Functions$core1588_latch_control$description$example$Example1" data-type="text" data-name="Example">
 
 </div>
 
-<div id="Functions$core1588_latch_disable$description$example$Example1" data-type="code" data-name="Example">
+<div id="Functions$core1588_latch_control$description$example$Example1" data-type="code" data-name="Example">
 
 
 ```
     uint32_t latch_mask = C1588_LATCH_0 | C1588_LATCH_1;
-    core1588_latch_disable(this_c1588, latch_mask);
+    core1588_latch_control(this_c1588, latch_mask, C1588_ENABLE);
 ```
 
 </div>
@@ -3520,7 +3312,7 @@ c1588_status_t declares the success or failure.
 ```
     c1588_timestamp_t timestamp;
     uint32_t latch_mask = C1588_LATCH_0;
-    core1588_latch_disable(this_c1588, &timestamp, latch_mask);
+    core1588_latch_get_timestamp(this_c1588, &timestamp, latch_mask);
 ```
 
 </div>
@@ -3555,7 +3347,7 @@ recorded and interrupt flags are cleared. The event information is stored in a
 c1588_rtc_event_timestamp_t structure and is placed in the c1588_instance_t ring
 buffer latch_buf. latch_mask should contain a mask of all of the latch related
 interrupts in the masked interrupt register. This API is the default latch
-interrupt handler and is called by c1588_isr().
+interrupt handler and is called by core1588_isr().
 
 </div>
 
@@ -3814,18 +3606,19 @@ possible options are:
 
 
  -------------------------------- 
-<a name="core1588triggerenable"></a>
-## core1588_trigger_enable
+<a name="core1588triggercontrol"></a>
+## core1588_trigger_control
 <a name="prototype"></a>
 ### Prototype 
 
-<div id="Functions$core1588_trigger_enable$prototype" data-type="code">
+<div id="Functions$core1588_trigger_control$prototype" data-type="code">
 
     void
-    core1588_trigger_enable
+    core1588_trigger_control
     (
         c1588_instance_t * this_c1588,
-        uint32_t trigger_mask
+        uint32_t trigger_mask,
+        uint32_t control
     );
 
 
@@ -3834,10 +3627,12 @@ possible options are:
 <a name="description"></a>
 ### Description
 
-<div id="Functions$core1588_trigger_enable$description" data-type="text">
+<div id="Functions$core1588_trigger_control$description" data-type="text">
 
-core1588_trigger_check_enabled() enables RTC triggers and their registers.
-trigger_mask is a mask of trigger IDs to enable.
+core1588_trigger_control() control RTC triggers and their registers.
+trigger_mask is a mask of trigger IDs to control. Passing C1588_ENABLE as a
+parameter will enable any triggers included in trigger_mask, while passing
+C1588_DISABLE will disable any triggers included in trigger_mask.
 
 </div>
 
@@ -3847,7 +3642,7 @@ trigger_mask is a mask of trigger IDs to enable.
 <a name="parameters"></a>
 ### Parameters
 #### this_c1588
-<div id="Functions$core1588_trigger_enable$description$parameters$this_c1588" data-type="text" data-name="this_c1588">
+<div id="Functions$core1588_trigger_control$description$parameters$this_c1588" data-type="text" data-name="this_c1588">
 
 The this_c1588 parameter is a pointer to a c1588_instance_t structure that holds
 all the data related to a Core1588 instance.
@@ -3856,7 +3651,7 @@ all the data related to a Core1588 instance.
 </div>
 
 #### trigger_mask
-<div id="Functions$core1588_trigger_enable$description$parameters$trigger_mask" data-type="text" data-name="trigger_mask">
+<div id="Functions$core1588_trigger_control$description$parameters$trigger_mask" data-type="text" data-name="trigger_mask">
 
 uint32_t mask of interrupt bits to denote which trigger ID to enable. The
 possible options are:
@@ -3869,9 +3664,18 @@ possible options are:
 
 </div>
 
+#### control
+<div id="Functions$core1588_trigger_control$description$parameters$control" data-type="text" data-name="control">
+
+uint32_t parameter which selects whether the API enables or disables its
+respective functionality.
+
+
+</div>
+
 <a name="return"></a>
 ### Return
-<div id="Functions$core1588_trigger_enable$description$return" data-type="text">
+<div id="Functions$core1588_trigger_control$description$return" data-type="text">
 
 This function does not return a value.
 
@@ -3879,97 +3683,16 @@ This function does not return a value.
 </div>
 
 ##### Example
-<div id="Functions$core1588_trigger_enable$description$example$Example1" data-type="text" data-name="Example">
+<div id="Functions$core1588_trigger_control$description$example$Example1" data-type="text" data-name="Example">
 
 </div>
 
-<div id="Functions$core1588_trigger_enable$description$example$Example1" data-type="code" data-name="Example">
+<div id="Functions$core1588_trigger_control$description$example$Example1" data-type="code" data-name="Example">
 
 
 ```
     uint32_t trigger_mask = C1588_TRIGGER_0 | C1588_TRIGGER_1;
-    core1588_trigger_enable(this_c1588, trigger_mask);
-```
-
-</div>
-
-
- -------------------------------- 
-<a name="core1588triggerdisable"></a>
-## core1588_trigger_disable
-<a name="prototype"></a>
-### Prototype 
-
-<div id="Functions$core1588_trigger_disable$prototype" data-type="code">
-
-    void
-    core1588_trigger_disable
-    (
-        c1588_instance_t * this_c1588,
-        uint32_t trigger_mask
-    );
-
-
-</div>
-
-<a name="description"></a>
-### Description
-
-<div id="Functions$core1588_trigger_disable$description" data-type="text">
-
-core1588_trigger_check_disabled() disables RTC triggers and their registers.
-trigger_mask is a mask of trigger IDs to disable.
-
-</div>
-
-
- --------------------------- 
-
-<a name="parameters"></a>
-### Parameters
-#### this_c1588
-<div id="Functions$core1588_trigger_disable$description$parameters$this_c1588" data-type="text" data-name="this_c1588">
-
-The this_c1588 parameter is a pointer to a c1588_instance_t structure that holds
-all the data related to a Core1588 instance.
-
-
-</div>
-
-#### trigger_mask
-<div id="Functions$core1588_trigger_disable$description$parameters$trigger_mask" data-type="text" data-name="trigger_mask">
-
-uint32_t mask of interrupt bits to denote which trigger ID to disable. The
-possible options are:
-
-  - C1588_TRIGGER_0
-  - C1588_TRIGGER_1
-  - C1588_TRIGGER_2
-  - C1588_TRIGGER_MASK_ALL
-
-
-</div>
-
-<a name="return"></a>
-### Return
-<div id="Functions$core1588_trigger_disable$description$return" data-type="text">
-
-This function does not return a value.
-
-
-</div>
-
-##### Example
-<div id="Functions$core1588_trigger_disable$description$example$Example1" data-type="text" data-name="Example">
-
-</div>
-
-<div id="Functions$core1588_trigger_disable$description$example$Example1" data-type="code" data-name="Example">
-
-
-```
-    uint32_t trigger_mask = C1588_TRIGGER_0 | C1588_TRIGGER_1;
-    core1588_trigger_disable(this_c1588, trigger_mask);
+    core1588_trigger_control(this_c1588, trigger_mask, C1588_ENABLE);
 ```
 
 </div>
@@ -4145,7 +3868,7 @@ c1588_status_t declares the success or failure.
 ```
     c1588_timestamp_t timestamp;
     uint32_t trigger_mask = C1588_TRIGGER_0;
-    core1588_trigger_disable(this_c1588, &timestamp, trigger_mask);
+    core1588_trigger_get_timestamp(this_c1588, &timestamp, trigger_mask);
 ```
 
 </div>
@@ -4180,7 +3903,7 @@ recorded and interrupt flags are cleared. The event information is stored in a
 c1588_rtc_event_timestamp_t structure and placed in the c1588_instance_t ring
 buffer trigger_buf. trigger_mask should contain a mask of all of the trigger
 related interrupts in the masked interrupt register. This API is the default
-trigger interrupt handler and is called by c1588_isr().
+trigger interrupt handler and is called by core1588_isr().
 
 </div>
 
