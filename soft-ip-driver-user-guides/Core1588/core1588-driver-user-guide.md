@@ -185,16 +185,16 @@ already been saved.
 
 core1588_isr() handles all interrupts related to the Core1588. This interrupt
 handler should be called by the appropriate interrupt handler provided by the
-processor HAL layer. e.g. (Interrupt handlers provided by MIV_RV32 HAL) which
-will vary depending on how the Core1588 interrupts are hooked to the processor
-in your design. The interrupt types handled by the interrupt handler will depend
-on the interrupts enabled by the user. Depending on the interrupt that has been
-detected, core1588_isr() may call a different interrupt handler. There should be
-no need to call these individual interrupt handlers as a user, this API should
-handle it instead. For example, core1588_ptp_rx_default_handler() does not need
-to be called in the application code to handle a received message.
-core1588_isr() should be triggered instead, and will in turn call the Rx message
-handler itself.
+processor HAL layer. For example, interrupt handlers provided by MIV_RV32 HAL,
+which will vary depending on how the Core1588 interrupts are hooked to the
+processor in your design. The interrupt types handled by the interrupt handler
+will depend on the interrupts enabled by the user. Depending on the interrupt
+that has been detected, core1588_isr() may call a different interrupt handler.
+There should be no need to call these individual interrupt handlers as a user,
+this API should handle it instead. For example,
+core1588_ptp_rx_default_handler() does not need to be called in the application
+code to handle a received message. core1588_isr() should be triggered instead,
+and will in turn call the Rx message handler itself.
 
 If a user wishes to include their own interrupt handling APIs, use the
 core1588_interrupt.c file. This file contains APIs for Tx and Rx messages, as
@@ -3829,8 +3829,8 @@ all the data related to a Core1588 instance.
 #### ts
 <div id="Functions$core1588_trigger_get_timestamp$description$parameters$ts" data-type="text" data-name="ts">
 
-The ts parameter is a pointer to a c1588_timestamp_t structure where the sampled
-trigger RTC timestamp can be stored.
+The ts parameter is a pointer to a c1588_timestamp_t structure that stores the
+sampled trigger RTC timestamp value.
 
 
 </div>
@@ -3843,7 +3843,8 @@ from. The possible options are:
 
   - C1588_TRIGGER_0
   - C1588_TRIGGER_1
-  - C1588_TRIGGER_2 Only one of these triggers should be selected at a time.
+  - C1588_TRIGGER_2 NOTE: Only one of these triggers should be selected at a 
+time.
 
 
 </div>
@@ -3900,7 +3901,7 @@ c1588_status_t declares the success or failure.
 core1588_trigger_default_handler() handles the gathering of trigger timestamp
 information in the event of an RTC trigger event. Timestamp and trigger ID are
 recorded and interrupt flags are cleared. The event information is stored in a
-c1588_rtc_event_timestamp_t structure and placed in the c1588_instance_t ring
+c1588_rtc_event_timestamp_t structure and is placed in the c1588_instance_t ring
 buffer trigger_buf. trigger_mask should contain a mask of all of the trigger
 related interrupts in the masked interrupt register. This API is the default
 trigger interrupt handler and is called by core1588_isr().
@@ -3974,7 +3975,7 @@ items, where C1588_TRIGGER_RING_SIZE is defined in core1588_user_config.h.
 Trigger event information is stored in the buffer as c1588_rtc_event_timestamp_t
 structs and passed to the API through the trigger_ts API parameter. The API
 stores messages on a FIFO basis and handles the management of ring buffer
-indices. If the buffer is full the oldest buffer contents will be overwritten.
+indices. If the buffer is full, the oldest buffer contents will be overwritten.
 This API will be called by the core1588_trigger_default_handler() API.
 
 </div>
@@ -4035,11 +4036,11 @@ This function does not return a value.
 
 <div id="Functions$core1588_trigger_get_from_buffer$description" data-type="text">
 
-core1588_trigger_get_from_buffer() pops the oldest trigger timestamping
-information from the trigger information ring buffer. The function will copy the
-message contents to the address of the pointer provided by the trigger_ts
-parameter. The API will retrieve messages on a FIFO basis and handle the
-management of ring indices.
+core1588_trigger_get_from_buffer() retrieves the oldest trigger timestamping
+information from the trigger information ring buffer, and also removes it from
+the buffer. The function will copy the message contents to the address of the
+pointer provided by the trigger_ts parameter. The API will retrieve messages on
+a FIFO basis and handle the management of ring indices.
 
 </div>
 
@@ -4060,8 +4061,8 @@ all the data related to a Core1588 instance.
 #### trigger_ts
 <div id="Functions$core1588_trigger_get_from_buffer$description$parameters$trigger_ts" data-type="text" data-name="trigger_ts">
 
-The trigger_ts parameter is the pointer to which the desired trigger timestamp
-will be written.
+The trigger_ts parameter is the pointer where the desired trigger timestamp will
+be written.
 
 
 </div>
